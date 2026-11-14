@@ -2,9 +2,9 @@
 
 Make scripts with hardcoded `/nix/store/` shebang paths relocatable without
 changing the scripts. After copying a script and its closure beneath another
-root, the handler selects the interpreter from that relocated store at execution
-time. For example, a script under `/opt/app/nix/store/` whose shebang names
-`/nix/store/<hash>-bash/bin/bash` runs with
+root, the [binfmt handler](relocate.bpf.c) selects the interpreter from that
+relocated store at execution time. For example, a script under
+`/opt/app/nix/store/` whose shebang names `/nix/store/<hash>-bash/bin/bash` runs with
 `/opt/app/nix/store/<hash>-bash/bin/bash`.
 
 It triggers only when the script's resolved path matches
@@ -59,3 +59,7 @@ Implementation follows the sleepable `binfmt_misc_ops` pattern used by
 Scratch buffers are keyed by task ID because sleepable BPF programs can
 migrate between CPUs. At most 512 simultaneous handler invocations have
 scratch slots; allocation failure during matching declines the handler.
+This can silently fall back to the original `/nix/store` interpreter if it is
+available, rather than the relocated interpreter. A production implementation
+would need to handle this case explicitly so that resource exhaustion cannot
+silently change which interpreter runs.
